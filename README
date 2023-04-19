@@ -1,0 +1,147 @@
+# cs40_hw06
+Universal Machine
+by Peter Wolfe (pwolfe02)
+and Liam Drew  (wdrew02)
+
+Acknowledgments: 
+Thank you TAs!
+
+Correctly implemented:
+        - Full implementation
+        - Reasonable performance (per the spec)
+
+Departures from design:
+        Our original design had many modules, each with a single input-output.
+        Soon into coding we realized that while this design would be optimal
+        for a C++ implementation with classes and private variables, it does not
+        translate well to C. To enforce secret keeping, we decided to use
+        structs that contain the data of each module. For example, the
+        UM_Memory struct contains the registers and memory segments, but only
+        functions in memory_interface actually access the data contained in it.
+        We also received the feedback to combine modules, which made us realize
+        we could combine Registers with Memory Interface and the ALU in the
+        Instruction Handler. Our original design most resembles a real computer
+        with discrete chips, whereas our final design is better suited for a C
+        program.
+
+Architecture:
+        main
+                Checks that the program file is valid. Start the UM with the
+                provided file pointer.
+
+                Secrets: The specific filename. The UM only receives a *FP
+                pointer.
+        Operation Manager
+                Initialize the UM and read instructions. Start the processor
+                cycle which asks the MI for the next instruction and passes it
+                to the Instruction Handler. The Instruction Handler reads the
+                word and executes it. It returns an exit code that will tell
+                the UM to continue, halt, or change the instruction counter.
+
+                Secrets:
+                Program Data is stored in a struct that only the OM can access
+                the contents of. This struct contains the instruction counter.
+        Memory Interface
+                Abstractions:
+                Contains a struct which stores a pointer to the
+                memory, a pointer to the registers, and a pointer to the
+                a sequence of unmapped segment IDs. These contents of the struct
+                are not accessible in any functions outside the Memory
+                Interface. Thus, they are kept secret.
+
+                Data structures:
+                We store our memory as a sequence of segments, each an unboxed
+                array. Using a sequence allows us to expand and manipulate
+                memory with ease. Since segments don't change size, we can make
+                them unboxed arrays for better performance.
+
+                The IDs of our unmapped segments are stored in another sequence
+                and registers are an array of uint32_t's.
+                
+                Interactions:
+                Upon startup, the Operations Manager passes a file pointer for
+                the Memory Interface to read the program and store in the zero
+                segment. The Instruction Handler interacts with the Memory
+                Module whenever it accesses a register or calls an instruction
+                that manipulates memory. 
+        Instruction Handler
+                This module accepts an instruction word, decodes it, and
+                executes the instruction. It interacts with the Memory Module
+                frequently to read register values and manipulate memory.
+                Memory is only accessed by the specific instructions that are
+                intended to manipulate memory (e.g. Segmented Store). The
+                Instruction Handler returns an exit code to the OM telling it
+                how to proceed: continue, change instruction counter, or halt.
+        IO
+                This module supports printing the contents of a register to
+                stdout and reading a char from stdin into a register.
+
+                Abstractions:
+                        This module has functions in the memory interface doing
+                        the heavy lifting when it comes to accessing and
+                        returning the contents of a register. This module only
+                        handles the input and output from stdin and stdout.
+                Secrets:
+                        This module knows how to access stdin and stdout.
+                        No other module directly interacts with either of these
+                        streams.
+                Usage:
+                        This module gets used by the instruction handler.
+                
+
+50 million instructions
+
+Here was our strategy for calculating performance for 50 million instructions.
+Step 1: Counting instructions.
+We added a counter variable to our program that was incremented by 1 every time
+our processor cycle function was called. (Each call of that processor cycle
+fetches and handles a single instruction.) Thus, we determined that running
+midmark executes 85,070,522 instructions.
+
+Step 2: Timing our program.
+We used /user/bin/time to time our program. Here were our results for midmark:
+4.28user 0.05system 0:04.35elapsed
+So 4.28 seconds.
+
+Step 3: Division to calculate the time required for 50 million instructions.
+50/85.07 = 0.574
+0.574 * 4.28 = 2.46 seconds
+
+Thus, we estimate our UM needs 2.46 seconds to execute 50 million instructions.
+
+
+
+List of UM tests:
+
+halt.um
+        halts the UM and does nothing else
+halt-verbose.um
+        prints a message and halts the UM
+add.um
+        Adds two numbers and halts
+build-message.um
+        Builds a more complicated message and halts
+print-six.um
+        Adds two numbers and outputs the corresponding ascii character
+yes_cond_move.um
+        Tests the yes case for conditional move
+no_cond_move.um
+        Tests the no case for conditional move
+big-num.um
+        Adds two somewhat large numbers
+big-mult.um
+        Multiplies two medium sized numbers.
+
+We also wrote several more unit tests designed to test our UM's ability to
+correctly raise errors and fail. We did not include these tests because all
+provided tests must not crash either our UM or the reference UM.
+
+Examples of this testing included division by 0, accessing an unmapped segment,
+loading an unmapped segment into segment 0, and accessing segments out of range.
+
+
+
+Hour breakdown:
+        2 hours analysis
+        4 hours design
+        10 hours analyzing & debugging
