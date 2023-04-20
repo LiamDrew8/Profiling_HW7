@@ -19,14 +19,14 @@ IFLAGS = -I/comp/40/build/include -I/usr/sup/cii40/include/cii
 # to use the GNU 99 standard to get the right items in time.h for the
 # the timing support to compile.
 # 
-CFLAGS = -g -std=gnu99 -Wall -Wextra -Werror -Wfatal-errors -pedantic -O2 \
+CFLAGS = -g -std=gnu99 -Wall -Wextra -Werror -O2 -Wfatal-errors -pedantic  \
 	$(IFLAGS)
 
 # Linking flags
 # Set debugging information and update linking path
 # to include course binaries and CII implementations
 
-LDFLAGS = -g -L/comp/40/build/lib -L/usr/sup/cii40/lib64 -O2
+LDFLAGS = -g -O2 -L/comp/40/build/lib -L/usr/sup/cii40/lib64 
 
 # Libraries needed for linking
 # All programs cii40 (Hanson binaries) and *may* need -lm (math)
@@ -35,7 +35,7 @@ LDFLAGS = -g -L/comp/40/build/lib -L/usr/sup/cii40/lib64 -O2
 
 #NOTE: we modified this flag to include files from l40arith
 #LDLIBS = -l40locality -lnetpbm -lcii40 -lm -lrt
-LDLIBS = -lbitpack -lum-dis -lcii -lcii40 -lm -lrt
+LDLIBS = -lcii40-O2 -lbitpack -lum-dis -lcii -lm -lrt
 
 
 
@@ -64,7 +64,10 @@ all: um
 unit_test: 
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
-um: main.o operation_manager.o memory_interface.o io.o instruction_handler.o
+um: t2_main.o
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+um_old: main.o operation_manager.o memory_interface.o io.o instruction_handler.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 clean:
