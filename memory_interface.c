@@ -47,43 +47,7 @@ UM_instruction fetch_instruction(UM_Memory curr_memory, int program_counter)
 */
 UArray_T load_initial_segment(FILE *fp)
 {
-        assert(fp != NULL);
 
-        /* Get file size here */
-        fseek(fp, 0L, SEEK_END);
-        int file_size = ftell(fp);
-        rewind(fp);
-
-        UArray_T initial_program = UArray_new(file_size, sizeof(uint32_t));
-        uint32_t *curr_ptr;
-        uint32_t word = 0;
-        int c;
-        int i = 0;
-        unsigned char c_char;
-        
-        for (c = getc(fp); c != EOF; c = getc(fp)) {
-                c_char = (unsigned char)c;
-                
-                /* Each word is made up of 4 chars. Here we build the word one
-                 * char at a time in Big Endian Order */
-
-                if (i % 4 == 0) {
-                        word = Bitpack_newu(word, 8, 24, c_char);
-                } else if (i % 4 == 1) {
-                        word = Bitpack_newu(word, 8, 16, c_char);
-                } else if (i % 4 == 2) {
-                        word = Bitpack_newu(word, 8, 8, c_char);
-                } else if (i % 4 == 3) {
-                        word = Bitpack_newu(word, 8, 0, c_char);
-                        curr_ptr = (uint32_t*) UArray_at(initial_program, 
-                                (i / 4));
-                        *curr_ptr = word;
-                        word = 0;
-                }
-                i++;
-        }
-        fclose(fp);
-        return initial_program;
 }
 
 /**

@@ -14,3 +14,6 @@ small     |  4.27  |  24.160b   | 1.00         | 1.00         |
 ________________________________________________________________________________
 big       | 73.57  |  ------    | 1.00         | 1.00        |  Optimizing instruction handler:
 small     |  2.91  |  10.660b   | 1.00         | 1.00        |  Remove bitpack and make registers global
+________________________________________________________________________________
+big       |  14.98 |  ------    | 1.00         | 1.00        |  Remade memory architecture. No more struct indirection.
+small     |  0.58  |  3.153b    | 1.00         | 1.00        |  Also optimized bitpack

@@ -64,7 +64,7 @@ all: um
 unit_test: 
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
-um: t2_main.o
+um: t3_main.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 um_old: main.o operation_manager.o memory_interface.o io.o instruction_handler.o
