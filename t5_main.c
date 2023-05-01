@@ -98,15 +98,17 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
 }
 
+void handle_instruction();
 void initialize_memory(FILE *fp);
-void processor_cycle();
+// void processor_cycle();
 void start_um(FILE *fp)
 {
         /* Initialize memory */
         initialize_memory(fp);
         
         /* Start intstruction loop */
-        processor_cycle();
+        //processor_cycle();
+        handle_instruction();
 }
 
 
@@ -177,22 +179,24 @@ void load_initial_segment(FILE *fp)
         return;
 }
 
-void handle_instruction(UM_instruction word);
-void processor_cycle()
-{
-        while (true) {
-                handle_instruction(segment_sequence[0][program_counter]);
-        }
-}
+// void processor_cycle()
+// {
+//         while (true) {
+//                 handle_instruction(segment_sequence[0][program_counter]);
+//         }
+// }
 
 /** INSTRUCTION HANDLER
  */
 
-uint32_t segmented_load(uint32_t segment, uint32_t index);
-void segmented_store(uint32_t segment, uint32_t index, uint32_t value);
+uint32_t segmented_load(uint32_t segment, uint32_t index, uint32_t **segment_sequence2);
+void segmented_store(uint32_t segment, uint32_t index, uint32_t value, uint32_t **segment_sequence2);
 
-void handle_instruction(UM_instruction word)
+void handle_instruction()
 {
+        UM_instruction word;
+        while (true) {
+        word = segment_sequence[0][program_counter];
         program_counter++;
 
         /* decode the opcode, a, b, c*/
@@ -224,12 +228,12 @@ void handle_instruction(UM_instruction word)
                 case 1:
                         /* Segmented Load (Memory Module) */
                         registers[a] = segmented_load(registers[b], 
-                                registers[c]);
+                                registers[c], segment_sequence);
                         break;
                 case 2:
                         /* Segmented Store (Memory Module) */
                         segmented_store(registers[a], 
-                                registers[b], registers[c]);
+                                registers[b], registers[c], segment_sequence);
                         break;
                 case 3:
                         /* Addition */
@@ -282,6 +286,9 @@ void handle_instruction(UM_instruction word)
                         //fprintf(stderr, "Reg val is %u\n", registers[a]);
                         break;
         }
+
+        }
+        
 
         /* This exit code of -1 means everything is normal */
 }
@@ -372,9 +379,9 @@ void unmap_segment(uint32_t segment)
  *
  * @returns The word in memory
 */
-uint32_t segmented_load(uint32_t segment, uint32_t index)
+uint32_t segmented_load(uint32_t segment, uint32_t index, uint32_t **segment_sequence2)
 {
-        return segment_sequence[segment][index];
+        return segment_sequence2[segment][index];
         // assert(mem);
         // UArray_T get_segment = (UArray_T) Seq_get(mem->segment_sequence, 
         //         segment);
@@ -389,9 +396,9 @@ uint32_t segmented_load(uint32_t segment, uint32_t index)
  * @returns None
 */
 void segmented_store(uint32_t segment, uint32_t index, 
-        uint32_t value)
+        uint32_t value, uint32_t **segment_sequence2)
 {
-        segment_sequence[segment][index] = value;
+        segment_sequence2[segment][index] = value;
         // assert(mem);
         // UArray_T get_segment = (UArray_T) Seq_get(mem->segment_sequence, 
         //         segment);

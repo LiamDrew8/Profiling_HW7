@@ -21,7 +21,7 @@ typedef uint32_t UM_instruction;
 
 
 /**  OPERATIONS MANAGER */
-void start_um(FILE *fp);
+void start_um(FILE *fp, uint32_t **segment_sequence, uint32_t program_counter);
 
 /** MEMORY INTERFACE */
 
@@ -29,13 +29,13 @@ void start_um(FILE *fp);
 
 // static inline void set_register(unsigned index, uint32_t new_contents);
 
-uint32_t map_segment(uint32_t size);
+uint32_t map_segment(uint32_t size, uint32_t **segment_sequence);
 
-void unmap_segment(uint32_t segment);
+void unmap_segment(uint32_t segment, uint32_t **segment_sequence);
 
-void load_program(uint32_t segment);
+void load_program(uint32_t segment, uint32_t **segment_sequence);
 
-void handle_halt();
+void handle_halt(uint32_t **segment_sequence);
 
 void print_registers();
 
@@ -52,12 +52,11 @@ uint32_t read_in_to_register();
 /* ---------*/
 
 
-uint32_t program_counter = 0;
+//uint32_t program_counter = 0;
 
 uint32_t registers[8] = {0};
 
 /* Array of Segments (Will be reallocated) */
-uint32_t **segment_sequence;
 uint32_t seq_size = 0;
 uint32_t seq_capacity = 0;
 
@@ -70,7 +69,7 @@ uint32_t *recycled_ids;
 uint32_t rec_size = 0;
 uint32_t rec_capacity = 0;
 
-uint64_t power = (uint64_t)1 << 32;
+const uint64_t POWER = (uint64_t)1 << 32;
 
 
 
@@ -92,26 +91,29 @@ int main(int argc, char *argv[])
 
         /* Starting UM: */
 
-        start_um(fp);
+        uint32_t **segment_sequence = NULL;
+        uint32_t program_counter = 0;
+
+        start_um(fp, segment_sequence, program_counter);
 
         
         return EXIT_SUCCESS;
 }
 
-void initialize_memory(FILE *fp);
+uint32_t **initialize_memory(FILE *fp, uint32_t **segment_sequence);
 void processor_cycle();
-void start_um(FILE *fp)
+void start_um(FILE *fp, uint32_t **segment_sequence, uint32_t program_counter)
 {
         /* Initialize memory */
-        initialize_memory(fp);
+        segment_sequence = initialize_memory(fp, segment_sequence);
         
         /* Start intstruction loop */
-        processor_cycle();
+        processor_cycle(segment_sequence, program_counter);
 }
 
 
-void load_initial_segment(FILE *fp);
-void initialize_memory(FILE *fp)
+void load_initial_segment(FILE *fp, uint32_t **segment_sequence);
+uint32_t **initialize_memory(FILE *fp, uint32_t **segment_sequence)
 {
         seq_capacity = 128;
         /* This could be a problem area. Pay attention here */
@@ -121,16 +123,18 @@ void initialize_memory(FILE *fp)
         segment_lengths = malloc(seq_capacity * sizeof(uint32_t));
         assert(segment_lengths != NULL);
 
-        load_initial_segment(fp);
+        load_initial_segment(fp, segment_sequence);
 
         rec_capacity = 128;
         recycled_ids = (uint32_t*) malloc(rec_capacity * sizeof(uint32_t*));
         assert(recycled_ids != NULL);
+        return segment_sequence;m
+
 
 
 }
 
-void load_initial_segment(FILE *fp)
+void load_initial_segment(FILE *fp, uint32_t **segment_sequence)
 {
         /* Get file size here */
         fseek(fp, 0L, SEEK_END);
@@ -174,24 +178,28 @@ void load_initial_segment(FILE *fp)
         segment_sequence[0] = temp;
         segment_lengths[0] = file_size;
         seq_size++;
-        return;
+        return ;
 }
 
-void handle_instruction(UM_instruction word);
-void processor_cycle()
-{
+uint32_t handle_instruction(UM_instruction word, uint32_t **segment_sequence, 
+    uint32_t program_counter);
+void processor_cycle(uint32_t **segment_sequence, uint32_t program_counter2)
+{       
+        (void)program_counter2;
+        register uint32_t program_counter = 0;
         while (true) {
-                handle_instruction(segment_sequence[0][program_counter]);
+            program_counter = handle_instruction(segment_sequence[0][program_counter], segment_sequence, program_counter);
         }
 }
 
 /** INSTRUCTION HANDLER
  */
 
-uint32_t segmented_load(uint32_t segment, uint32_t index);
-void segmented_store(uint32_t segment, uint32_t index, uint32_t value);
+uint32_t segmented_load(uint32_t segment, uint32_t index, uint32_t **segment_sequence);
+void segmented_store(uint32_t segment, uint32_t index, uint32_t value, uint32_t **segment_sequence);
 
-void handle_instruction(UM_instruction word)
+uint32_t handle_instruction(UM_instruction word, uint32_t **segment_sequence, 
+    uint32_t program_counter)
 {
         program_counter++;
 
@@ -224,20 +232,20 @@ void handle_instruction(UM_instruction word)
                 case 1:
                         /* Segmented Load (Memory Module) */
                         registers[a] = segmented_load(registers[b], 
-                                registers[c]);
+                                registers[c], segment_sequence);
                         break;
                 case 2:
                         /* Segmented Store (Memory Module) */
                         segmented_store(registers[a], 
-                                registers[b], registers[c]);
+                                registers[b], registers[c], segment_sequence);
                         break;
                 case 3:
                         /* Addition */
-                        registers[a] = (registers[b] + registers[c]) % power;
+                        registers[a] = (registers[b] + registers[c]) % POWER;
                         break;
                 case 4:
                         /* Multiplication */
-                        registers[a] = (registers[b] * registers[c]) % power;
+                        registers[a] = (registers[b] * registers[c]) % POWER;
                         break;
                 case 5:
                         /* Division */
@@ -248,17 +256,17 @@ void handle_instruction(UM_instruction word)
                         break;
                 case 7:
                         /* Halt */
-                        handle_halt();
+                        handle_halt(segment_sequence);
                         /* This exit code of -2 tells the operations module to
                          * stop the processor cycle */
                         break;
                 case 8:
                         /* Map Segment (Memory Module) */
-                        registers[b] = map_segment(registers[c]);
+                        registers[b] = map_segment(registers[c], segment_sequence);
                         break;
                 case 9:
                         /* Unmap Segment (Memory Module) */
-                        unmap_segment(registers[c]);
+                        unmap_segment(registers[c], segment_sequence);
                         break;
                 case 10:
                         /* Output (IO) */
@@ -271,7 +279,7 @@ void handle_instruction(UM_instruction word)
                 case 12:
                         /* Load Program (Memory Module) */
                         //fprintf(stderr, "LOADING  %u\n", registers[b]);
-                        load_program(registers[b]);
+                        load_program(registers[b], segment_sequence);
                         /* This exit code returns the new value of the program
                          * counter */
                         program_counter = registers[c];
@@ -282,6 +290,8 @@ void handle_instruction(UM_instruction word)
                         //fprintf(stderr, "Reg val is %u\n", registers[a]);
                         break;
         }
+
+        return program_counter;
 
         /* This exit code of -1 means everything is normal */
 }
@@ -295,7 +305,7 @@ void handle_instruction(UM_instruction word)
  *
  * @returns The index of the memory segment that was mapped
 */
-uint32_t map_segment(uint32_t size)
+uint32_t map_segment(uint32_t size, uint32_t **segment_sequence)
 {
 
         uint32_t *temp = calloc(size, sizeof(uint32_t));
@@ -340,7 +350,7 @@ uint32_t map_segment(uint32_t size)
  *
  * @returns None
 */
-void unmap_segment(uint32_t segment)
+void unmap_segment(uint32_t segment, uint32_t **segment_sequence)
 {
         uint32_t *to_be_freed = segment_sequence[segment];
         free(to_be_freed);
@@ -372,7 +382,7 @@ void unmap_segment(uint32_t segment)
  *
  * @returns The word in memory
 */
-uint32_t segmented_load(uint32_t segment, uint32_t index)
+uint32_t segmented_load(uint32_t segment, uint32_t index, uint32_t **segment_sequence)
 {
         return segment_sequence[segment][index];
         // assert(mem);
@@ -389,7 +399,7 @@ uint32_t segmented_load(uint32_t segment, uint32_t index)
  * @returns None
 */
 void segmented_store(uint32_t segment, uint32_t index, 
-        uint32_t value)
+        uint32_t value, uint32_t **segment_sequence)
 {
         segment_sequence[segment][index] = value;
         // assert(mem);
@@ -408,7 +418,7 @@ void segmented_store(uint32_t segment, uint32_t index,
  *
  * @returns None
 */
-void load_program(uint32_t segment)
+void load_program(uint32_t segment, uint32_t **segment_sequence)
 {
 
         if (segment == 0) { return; }
@@ -418,8 +428,8 @@ void load_program(uint32_t segment)
         //fprintf(stderr, "Copying segment of size %u \n", copied_seq_size);
 
         /* free the first segment */
-        //uint32_t *to_be_freed = segment_sequence[0];
-        free(segment_sequence[0]);
+        uint32_t *to_be_freed = segment_sequence[0];
+        free(to_be_freed);
 
         /* malloc a new segment in index 0 with size of one to be copied */
         segment_sequence[0] = (uint32_t*) malloc(copied_seq_size * sizeof(uint32_t));
@@ -449,7 +459,7 @@ void load_program(uint32_t segment)
 */
 
 /* Needs to free memory */
-void handle_halt()
+void handle_halt(uint32_t **segment_sequence)
 {
         // //free(program_memory->registers);
         // int seq_len = Seq_length(program_memory->segment_sequence);

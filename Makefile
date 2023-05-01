@@ -61,10 +61,16 @@ all: um
 
 ## Linking step (.o -> executable program)
 
+writetests: umlabwrite.o umlab.o
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
 unit_test: 
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
-um: t3_main.o
+um: t5_main.o
+	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
+
+slow_um: t3_main.o
 	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
 um_old: main.o operation_manager.o memory_interface.o io.o instruction_handler.o

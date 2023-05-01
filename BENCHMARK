@@ -1,19 +1,188 @@
+Note: We are comparing our relative times with -O2 as that is what we submitted
+for hw06.
+
 Benchmark | Time | Instructions | Rel Start | Rel Prev |   Improvement         |
 ________________________________________________________________________________
-big       | 185.64 |  ------    | 1.00      | 1.00     |   Start point   
+big       | 185.64 |  ------    | 1.00      | 1.00     |   No optimization   
 small     | 5.44   |  33.357b   | 1.00      | 1.00     |                 
 ________________________________________________________________________________
-big       | 122.12 |  ------    | 0.658     | 0.658    |  Compile with O1
-small     | 4.89   |  27.791b   | 0.898     | 0.898    |                 
+big       | 122.12 |  ------    | 1.00      | 1.00     |  Compile with O1
+small     | 4.89   |  27.791b   | 1.00      | 1.00     |                 
 ________________________________________________________________________________
 big       | 119.35 |  ------    | 1.00      | 1.00     |  Compile with O2
-small     |  4.76  |   27.371b  | 1.00         | 1.00         |                 
+small     |  4.76  |   27.371b  | 1.00      | 1.00     |  (Starting point)    
 ________________________________________________________________________________
-big       | 106.79 |  ------    | 1.00         | 1.00        |  Combine everything into one file
-small     |  4.27  |  24.160b   | 1.00         | 1.00         |                 
+big       | 106.79 |  ------    | 1.00      | 1.00     |  Combine every module 
+small     |  4.27  |  24.160b   | 1.00      | 1.00     |  into one file       
 ________________________________________________________________________________
-big       | 73.57  |  ------    | 1.00         | 1.00        |  Optimizing instruction handler:
-small     |  2.91  |  10.660b   | 1.00         | 1.00        |  Remove bitpack and make registers global
+big       | 73.57  |  ------    | 1.00      | 1.00     |  Optimizing instruction handler. We replaced bitpack interface with specific bitwise shifts.
+small     |  2.91  |  10.660b   | 1.00      | 1.00     |  We also made registers global variables.
 ________________________________________________________________________________
-big       |  14.98 |  ------    | 1.00         | 1.00        |  Remade memory architecture. No more struct indirection.
-small     |  0.58  |  3.153b    | 1.00         | 1.00        |  Also optimized bitpack
+big       |  14.98 |  ------    | 1.00      | 1.00     |  Remade memory architecture. No more struct indirection.
+small     |  0.58  |  3.153b    | 1.00      | 1.00     |  Also optimized bitpack
+
+
+
+Here is our assembly code for the most time consuming part of our program:
+the handle_instruction function:
+
+0000000000401360 <handle_instruction>:
+  401360:	89 f8                	mov    %edi,%eax
+  401362:	83 05 77 56 20 00 01 	addl   $0x1,0x205677(%rip)        # 6069e0 <program_counter>
+  401369:	c1 e8 1c             	shr    $0x1c,%eax
+  40136c:	83 f8 0d             	cmp    $0xd,%eax
+  40136f:	74 67                	je     4013d8 <handle_instruction+0x78>
+  401371:	55                   	push   %rbp
+  401372:	89 fa                	mov    %edi,%edx
+  401374:	89 fd                	mov    %edi,%ebp
+  401376:	c1 ef 06             	shr    $0x6,%edi
+  401379:	53                   	push   %rbx
+  40137a:	c1 ea 03             	shr    $0x3,%edx
+  40137d:	83 e5 07             	and    $0x7,%ebp
+  401380:	89 d3                	mov    %edx,%ebx
+  401382:	89 fa                	mov    %edi,%edx
+  401384:	83 e3 07             	and    $0x7,%ebx
+  401387:	83 e2 07             	and    $0x7,%edx
+  40138a:	48 83 ec 08          	sub    $0x8,%rsp
+  40138e:	83 f8 0d             	cmp    $0xd,%eax
+  401391:	77 3b                	ja     4013ce <handle_instruction+0x6e>
+  401393:	ff 24 c5 a0 49 40 00 	jmpq   *0x4049a0(,%rax,8)
+  40139a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  4013a0:	48 8b 3d 99 55 20 00 	mov    0x205599(%rip),%rdi        # 606940 <stdin@@GLIBC_2.2.5>
+  4013a7:	e8 74 f9 ff ff       	callq  400d20 <getc@plt>
+  4013ac:	ba ff ff ff ff       	mov    $0xffffffff,%edx
+  4013b1:	89 c3                	mov    %eax,%ebx
+  4013b3:	83 f8 ff             	cmp    $0xffffffff,%eax
+  4013b6:	74 0d                	je     4013c5 <handle_instruction+0x65>
+  4013b8:	3d ff 00 00 00       	cmp    $0xff,%eax
+  4013bd:	0f 8f 0d 02 00 00    	jg     4015d0 <handle_instruction+0x270>
+  4013c3:	89 da                	mov    %ebx,%edx
+  4013c5:	89 e8                	mov    %ebp,%eax
+  4013c7:	89 14 85 c0 69 60 00 	mov    %edx,0x6069c0(,%rax,4)
+  4013ce:	48 83 c4 08          	add    $0x8,%rsp
+  4013d2:	5b                   	pop    %rbx
+  4013d3:	5d                   	pop    %rbp
+  4013d4:	c3                   	retq   
+  4013d5:	0f 1f 00             	nopl   (%rax)
+  4013d8:	89 fa                	mov    %edi,%edx
+  4013da:	81 e7 ff ff ff 01    	and    $0x1ffffff,%edi
+  4013e0:	c1 ea 19             	shr    $0x19,%edx
+  4013e3:	83 e2 07             	and    $0x7,%edx
+  4013e6:	89 3c 95 c0 69 60 00 	mov    %edi,0x6069c0(,%rdx,4)
+  4013ed:	c3                   	retq   
+  4013ee:	66 90                	xchg   %ax,%ax
+  4013f0:	89 da                	mov    %ebx,%edx
+  4013f2:	8b 3c 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%edi
+  4013f9:	85 ff                	test   %edi,%edi
+  4013fb:	0f 85 a7 01 00 00    	jne    4015a8 <handle_instruction+0x248>
+  401401:	89 e8                	mov    %ebp,%eax
+  401403:	8b 04 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%eax
+  40140a:	89 05 d0 55 20 00    	mov    %eax,0x2055d0(%rip)        # 6069e0 <program_counter>
+  401410:	eb bc                	jmp    4013ce <handle_instruction+0x6e>
+  401412:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  401418:	89 e8                	mov    %ebp,%eax
+  40141a:	8b 04 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%eax
+  401421:	85 c0                	test   %eax,%eax
+  401423:	74 a9                	je     4013ce <handle_instruction+0x6e>
+  401425:	8b 04 9d c0 69 60 00 	mov    0x6069c0(,%rbx,4),%eax
+  40142c:	89 04 95 c0 69 60 00 	mov    %eax,0x6069c0(,%rdx,4)
+  401433:	eb 99                	jmp    4013ce <handle_instruction+0x6e>
+  401435:	0f 1f 00             	nopl   (%rax)
+  401438:	89 e8                	mov    %ebp,%eax
+  40143a:	8b 34 9d c0 69 60 00 	mov    0x6069c0(,%rbx,4),%esi
+  401441:	8b 0c 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%ecx
+  401448:	48 8b 05 51 55 20 00 	mov    0x205551(%rip),%rax        # 6069a0 <segment_sequence>
+  40144f:	48 8b 04 f0          	mov    (%rax,%rsi,8),%rax
+  401453:	8b 04 88             	mov    (%rax,%rcx,4),%eax
+  401456:	89 04 95 c0 69 60 00 	mov    %eax,0x6069c0(,%rdx,4)
+  40145d:	e9 6c ff ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  401462:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  401468:	89 e8                	mov    %ebp,%eax
+  40146a:	8b 34 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%esi
+  401471:	89 da                	mov    %ebx,%edx
+  401473:	8b 0c 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%ecx
+  40147a:	48 8b 05 1f 55 20 00 	mov    0x20551f(%rip),%rax        # 6069a0 <segment_sequence>
+  401481:	8b 14 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%edx
+  401488:	48 8b 04 f0          	mov    (%rax,%rsi,8),%rax
+  40148c:	89 0c 90             	mov    %ecx,(%rax,%rdx,4)
+  40148f:	e9 3a ff ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  401494:	0f 1f 40 00          	nopl   0x0(%rax)
+  401498:	89 d1                	mov    %edx,%ecx
+  40149a:	89 e8                	mov    %ebp,%eax
+  40149c:	89 da                	mov    %ebx,%edx
+  40149e:	8b 04 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%eax
+  4014a5:	03 04 95 c0 69 60 00 	add    0x6069c0(,%rdx,4),%eax
+  4014ac:	31 d2                	xor    %edx,%edx
+  4014ae:	48 f7 35 3b 4c 20 00 	divq   0x204c3b(%rip)        # 6060f0 <power>
+  4014b5:	89 14 8d c0 69 60 00 	mov    %edx,0x6069c0(,%rcx,4)
+  4014bc:	e9 0d ff ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  4014c1:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)
+  4014c8:	89 d1                	mov    %edx,%ecx
+  4014ca:	89 da                	mov    %ebx,%edx
+  4014cc:	8b 04 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%eax
+  4014d3:	0f af 04 ad c0 69 60 	imul   0x6069c0(,%rbp,4),%eax
+  4014da:	00 
+  4014db:	31 d2                	xor    %edx,%edx
+  4014dd:	48 f7 35 0c 4c 20 00 	divq   0x204c0c(%rip)        # 6060f0 <power>
+  4014e4:	89 14 8d c0 69 60 00 	mov    %edx,0x6069c0(,%rcx,4)
+  4014eb:	e9 de fe ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  4014f0:	89 d1                	mov    %edx,%ecx
+  4014f2:	89 da                	mov    %ebx,%edx
+  4014f4:	8b 04 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%eax
+  4014fb:	31 d2                	xor    %edx,%edx
+  4014fd:	f7 34 ad c0 69 60 00 	divl   0x6069c0(,%rbp,4)
+  401504:	89 04 8d c0 69 60 00 	mov    %eax,0x6069c0(,%rcx,4)
+  40150b:	e9 be fe ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  401510:	89 d1                	mov    %edx,%ecx
+  401512:	89 da                	mov    %ebx,%edx
+  401514:	8b 04 95 c0 69 60 00 	mov    0x6069c0(,%rdx,4),%eax
+  40151b:	23 04 ad c0 69 60 00 	and    0x6069c0(,%rbp,4),%eax
+  401522:	f7 d0                	not    %eax
+  401524:	89 04 8d c0 69 60 00 	mov    %eax,0x6069c0(,%rcx,4)
+  40152b:	e9 9e fe ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  401530:	89 e8                	mov    %ebp,%eax
+  401532:	8b 3c 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%edi
+  401539:	e8 f2 fb ff ff       	callq  401130 <map_segment>
+  40153e:	89 da                	mov    %ebx,%edx
+  401540:	89 04 95 c0 69 60 00 	mov    %eax,0x6069c0(,%rdx,4)
+  401547:	e9 82 fe ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  40154c:	0f 1f 40 00          	nopl   0x0(%rax)
+  401550:	89 e8                	mov    %ebp,%eax
+  401552:	8b 3c 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%edi
+  401559:	48 83 c4 08          	add    $0x8,%rsp
+  40155d:	5b                   	pop    %rbx
+  40155e:	5d                   	pop    %rbp
+  40155f:	e9 ac fc ff ff       	jmpq   401210 <unmap_segment>
+  401564:	0f 1f 40 00          	nopl   0x0(%rax)
+  401568:	89 e8                	mov    %ebp,%eax
+  40156a:	8b 1c 85 c0 69 60 00 	mov    0x6069c0(,%rax,4),%ebx
+  401571:	81 fb ff 00 00 00    	cmp    $0xff,%ebx
+  401577:	77 3f                	ja     4015b8 <handle_instruction+0x258>
+  401579:	48 83 c4 08          	add    $0x8,%rsp
+  40157d:	0f b6 fb             	movzbl %bl,%edi
+  401580:	5b                   	pop    %rbx
+  401581:	5d                   	pop    %rbp
+  401582:	e9 39 f6 ff ff       	jmpq   400bc0 <putchar@plt>
+  401587:	66 0f 1f 84 00 00 00 	nopw   0x0(%rax,%rax,1)
+  40158e:	00 00 
+  401590:	31 ff                	xor    %edi,%edi
+  401592:	89 3c 95 c0 69 60 00 	mov    %edi,0x6069c0(,%rdx,4)
+  401599:	e9 30 fe ff ff       	jmpq   4013ce <handle_instruction+0x6e>
+  40159e:	31 c0                	xor    %eax,%eax
+  4015a0:	e8 4b fd ff ff       	callq  4012f0 <handle_halt>
+  4015a5:	0f 1f 00             	nopl   (%rax)
+  4015a8:	e8 f3 f8 ff ff       	callq  400ea0 <load_program.part.0>
+  4015ad:	e9 4f fe ff ff       	jmpq   401401 <handle_instruction+0xa1>
+  4015b2:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  4015b8:	ba 07 02 00 00       	mov    $0x207,%edx
+  4015bd:	be 5c 49 40 00       	mov    $0x40495c,%esi
+  4015c2:	bf a8 5d 60 00       	mov    $0x605da8,%edi
+  4015c7:	e8 14 01 00 00       	callq  4016e0 <Except_raise>
+  4015cc:	eb ab                	jmp    401579 <handle_instruction+0x219>
+  4015ce:	66 90                	xchg   %ax,%ax
+  4015d0:	ba 1f 02 00 00       	mov    $0x21f,%edx
+  4015d5:	be 5c 49 40 00       	mov    $0x40495c,%esi
+  4015da:	bf a8 5d 60 00       	mov    $0x605da8,%edi
+  4015df:	e8 fc 00 00 00       	callq  4016e0 <Except_raise>
+  4015e4:	e9 da fd ff ff       	jmpq   4013c3 <handle_instruction+0x63>
+  4015e9:	0f 1f 80 00 00 00 00 	nopl   0x0(%rax)

@@ -16,8 +16,8 @@ extern void build_verbose_halt_test(Seq_T instructions);
 extern void build_message_test(Seq_T instructions);
 extern void add_test(Seq_T instructions);
 extern void print_digit(Seq_T instructions);
-extern void conditional_move_true(Seq_T instructions);
-extern void conditional_move_false(Seq_T instructions);
+// extern void conditional_move_true(Seq_T instructions);
+// extern void conditional_move_false(Seq_T instructions);
 extern void add_big_nums(Seq_T instructions);
 extern void div_by_0(Seq_T instructions);
 extern void io_G_255(Seq_T instructions);
@@ -39,8 +39,6 @@ static struct test_info {
         { "add",           NULL, "", add_test },
         { "build-message", NULL, "Helo\n", build_message_test },
         { "print-six",      NULL, "6", print_digit },
-        { "yes_cond_move", NULL, "Y", conditional_move_true },
-        { "no_cond_move", NULL, "N", conditional_move_false },
         { "big-num", NULL, "", add_big_nums },
         { "big-mult", NULL, "", mult_big_nums}
 
